@@ -6,7 +6,6 @@
 -- ============================================================
 
 TRUNCATE TABLE relationships CASCADE;
-TRUNCATE TABLE person_details_private CASCADE;
 TRUNCATE TABLE persons CASCADE;
 
 -- ============================================================
@@ -206,20 +205,18 @@ VALUES
 );
 
 -- ============================================================
--- THÔNG TIN RIÊNG TƯ (Admin only)
+-- THÔNG TIN RIÊNG TƯ (nay là cột trên chính bảng persons)
 -- ============================================================
-INSERT INTO person_details_private (person_id, phone_number, occupation, current_residence)
-VALUES
-('30000000-0000-0000-0000-000000000001', '09xx xxx 001', 'Kỹ sư xây dựng (đã nghỉ hưu)', 'Hà Đông, Hà Nội'),
-('30000000-0000-0000-0000-000000000002', '09xx xxx 002', 'Giáo viên Văn (đã nghỉ hưu)', 'Hà Đông, Hà Nội'),
-('30000000-0000-0000-0000-000000000003', '09xx xxx 003', 'Bác sĩ Nhi khoa', 'Đống Đa, Hà Nội'),
-('30000000-0000-0000-0000-000000000005', '09xx xxx 005', 'Chủ xưởng mộc', 'Hà Đông, Hà Nội'),
-('30000000-0000-0000-0000-000000000007', '09xx xxx 007', 'Kỹ sư Tin học', 'Quận 7, TP.HCM'),
-('40000000-0000-0000-0000-000000000001', '09xx xxx 101', 'Lập trình viên Fullstack', 'Cầu Giấy, Hà Nội'),
-('40000000-0000-0000-0000-000000000002', '09xx xxx 102', 'Nhà thiết kế UI/UX', 'Cầu Giấy, Hà Nội'),
-('40000000-0000-0000-0000-000000000003', '09xx xxx 103', 'Nghiên cứu sinh Tiến sĩ', 'Đống Đa, Hà Nội'),
-('40000000-0000-0000-0000-000000000005', '09xx xxx 105', 'Dược sĩ bệnh viện', 'Thanh Xuân, Hà Nội'),
-('40000000-0000-0000-0000-000000000006', '09xx xxx 106', 'Phi công hàng không', 'Long Biên, Hà Nội');
+UPDATE persons SET phone_number = '09xx xxx 001', occupation = 'Kỹ sư xây dựng (đã nghỉ hưu)', current_residence = 'Hà Đông, Hà Nội' WHERE id = '30000000-0000-0000-0000-000000000001';
+UPDATE persons SET phone_number = '09xx xxx 002', occupation = 'Giáo viên Văn (đã nghỉ hưu)', current_residence = 'Hà Đông, Hà Nội' WHERE id = '30000000-0000-0000-0000-000000000002';
+UPDATE persons SET phone_number = '09xx xxx 003', occupation = 'Bác sĩ Nhi khoa', current_residence = 'Đống Đa, Hà Nội' WHERE id = '30000000-0000-0000-0000-000000000003';
+UPDATE persons SET phone_number = '09xx xxx 005', occupation = 'Chủ xưởng mộc', current_residence = 'Hà Đông, Hà Nội' WHERE id = '30000000-0000-0000-0000-000000000005';
+UPDATE persons SET phone_number = '09xx xxx 007', occupation = 'Kỹ sư Tin học', current_residence = 'Quận 7, TP.HCM' WHERE id = '30000000-0000-0000-0000-000000000007';
+UPDATE persons SET phone_number = '09xx xxx 101', occupation = 'Lập trình viên Fullstack', current_residence = 'Cầu Giấy, Hà Nội' WHERE id = '40000000-0000-0000-0000-000000000001';
+UPDATE persons SET phone_number = '09xx xxx 102', occupation = 'Nhà thiết kế UI/UX', current_residence = 'Cầu Giấy, Hà Nội' WHERE id = '40000000-0000-0000-0000-000000000002';
+UPDATE persons SET phone_number = '09xx xxx 103', occupation = 'Nghiên cứu sinh Tiến sĩ', current_residence = 'Đống Đa, Hà Nội' WHERE id = '40000000-0000-0000-0000-000000000003';
+UPDATE persons SET phone_number = '09xx xxx 105', occupation = 'Dược sĩ bệnh viện', current_residence = 'Thanh Xuân, Hà Nội' WHERE id = '40000000-0000-0000-0000-000000000005';
+UPDATE persons SET phone_number = '09xx xxx 106', occupation = 'Phi công hàng không', current_residence = 'Long Biên, Hà Nội' WHERE id = '40000000-0000-0000-0000-000000000006';
 
 -- ============================================================
 -- QUAN HỆ GIA ĐÌNH

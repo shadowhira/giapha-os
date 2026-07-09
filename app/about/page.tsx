@@ -60,7 +60,7 @@ export default function AboutPage() {
                     Khi bạn triển khai ứng dụng, toàn bộ dữ liệu gia phả (tên,
                     ngày sinh, quan hệ, thông tin liên hệ...) được lưu trữ{" "}
                     <strong className="text-stone-800">
-                      trong tài khoản Supabase của chính bạn
+                      trong cơ sở dữ liệu Neon của chính bạn
                     </strong>
                     . Tác giả dự án không có quyền truy cập vào database đó.
                   </li>
@@ -77,7 +77,7 @@ export default function AboutPage() {
                       Bạn kiểm soát dữ liệu của bạn:
                     </strong>{" "}
                     Mọi dữ liệu gia đình, thông tin thành viên đều nằm hoàn toàn
-                    trong cơ sở dữ liệu Supabase mà bạn tạo và quản lý. Bạn có
+                    trong cơ sở dữ liệu Neon mà bạn tạo và quản lý. Bạn có
                     thể xóa, xuất hoặc di chuyển dữ liệu bất cứ lúc nào.
                   </li>
                   <li>

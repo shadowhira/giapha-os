@@ -1,6 +1,6 @@
+import { getPerson } from "@/app/actions/persons";
 import DeleteMemberButton from "@/components/DeleteMemberButton";
 import MemberDetailContent from "@/context/MemberDetailContent";
-import { getProfile, getSupabase } from "@/utils/supabase/queries";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -12,33 +12,10 @@ interface PageProps {
 export default async function MemberDetailPage({ params }: PageProps) {
   const { id } = await params;
 
-  const profile = await getProfile();
+  const person = await getPerson(id);
 
-  const isAdmin = profile?.role === "admin";
-  const canEdit = profile?.role === "admin" || profile?.role === "editor";
-
-  const supabase = await getSupabase();
-
-  // Fetch Person Public Data
-  const { data: person, error } = await supabase
-    .from("persons")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (error || !person) {
+  if (!person) {
     notFound();
-  }
-
-  // Fetch Private Data if Admin
-  let privateData = null;
-  if (isAdmin) {
-    const { data } = await supabase
-      .from("person_details_private")
-      .select("*")
-      .eq("person_id", id)
-      .single();
-    privateData = data;
   }
 
   return (
@@ -58,27 +35,20 @@ export default async function MemberDetailPage({ params }: PageProps) {
           </Link>
           <h1 className="title">Chi Tiết Thành Viên</h1>
         </div>
-        {canEdit && (
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
-            <Link
-              href={`/dashboard/members/${id}/edit`}
-              className="btn flex-1 sm:flex-none w-full sm:w-auto"
-            >
-              Chỉnh sửa
-            </Link>
-            <DeleteMemberButton memberId={id} className="flex-1 sm:flex-none" />
-          </div>
-        )}
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <Link
+            href={`/dashboard/members/${id}/edit`}
+            className="btn flex-1 sm:flex-none w-full sm:w-auto"
+          >
+            Chỉnh sửa
+          </Link>
+          <DeleteMemberButton memberId={id} className="flex-1 sm:flex-none" />
+        </div>
       </div>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10 w-full flex-1">
         <div className="bg-white/60 rounded-2xl shadow-sm border border-stone-200/60 overflow-hidden hover:shadow-md transition-shadow duration-300">
-          <MemberDetailContent
-            person={person}
-            privateData={privateData}
-            isAdmin={isAdmin}
-            canEdit={canEdit}
-          />
+          <MemberDetailContent person={person} />
         </div>
       </main>
     </div>

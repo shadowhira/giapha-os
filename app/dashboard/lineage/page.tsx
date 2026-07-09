@@ -1,26 +1,13 @@
 import LineageManager from "@/components/LineageManager";
-import { getProfile, getSupabase } from "@/utils/supabase/queries";
-import { redirect } from "next/navigation";
+import { Person, Relationship } from "@/types";
+import { sql } from "@/utils/db/client";
 
 export default async function LineagePage() {
-  const profile = await getProfile();
+  const persons = (await sql`
+    SELECT * FROM persons ORDER BY birth_year ASC NULLS LAST
+  `) as unknown as Person[];
 
-  if (profile?.role !== "admin") {
-    redirect("/dashboard");
-  }
-
-  const supabase = await getSupabase();
-
-  const { data: personsData } = await supabase
-    .from("persons")
-    .select("*")
-    .order("birth_year", { ascending: true, nullsFirst: false });
-
-  const { data: relsData } = await supabase.from("relationships").select("*");
-
-  // Identify "roots" - people with no parents
-  const persons = personsData || [];
-  const relationships = relsData || [];
+  const relationships = (await sql`SELECT * FROM relationships`) as unknown as Relationship[];
 
   return (
     <main className="flex-1 overflow-auto bg-stone-50/50 flex flex-col pt-8 relative w-full">

@@ -1,7 +1,8 @@
 "use client";
 
+import { createPerson, updatePerson, updatePersonAvatar } from "@/app/actions/persons";
+import { deleteBlob, uploadAvatar } from "@/app/actions/storage";
 import { Gender, Person } from "@/types";
-import { createClient } from "@/utils/supabase/client";
 import { AnimatePresence, motion, Variants } from "framer-motion";
 import {
   AlertCircle,
@@ -22,7 +23,6 @@ import { useState } from "react";
 interface MemberFormProps {
   initialData?: Person;
   isEditing?: boolean;
-  isAdmin?: boolean;
   /** Called with the saved person's ID after a successful save. Overrides default router.push. */
   onSuccess?: (personId: string) => void;
   /** Called when user clicks Cancel. Overrides default router.back(). */
@@ -32,12 +32,10 @@ interface MemberFormProps {
 export default function MemberForm({
   initialData,
   isEditing = false,
-  isAdmin = false,
   onSuccess,
   onCancel,
 }: MemberFormProps) {
   const router = useRouter();
-  const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,18 +105,6 @@ export default function MemberForm({
   const [currentResidence, setCurrentResidence] = useState(
     initialData?.current_residence ?? "",
   );
-
-  const slugify = (str: string) => {
-    return str
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[đĐ]/g, "d")
-      .replace(/([^0-9a-z-\s])/g, "")
-      .replace(/(\s+)/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  };
 
   const handleSolarDeathChange = (
     field: "day" | "month" | "year",
@@ -326,84 +312,36 @@ export default function MemberForm({
         other_names: otherNames || null,
         avatar_url: url,
         note: note || null,
+        phone_number: phoneNumber?.trim() || null,
+        occupation: occupation?.trim() || null,
+        current_residence: currentResidence?.trim() || null,
       });
 
       let currentPersonId = initialData?.id;
 
       // For a new member, we must insert first to get the ID for the avatar filename
       if (!isEditing || !currentPersonId) {
-        const { data: newPerson, error: createError } = await supabase
-          .from("persons")
-          .insert(getPersonData(currentAvatarUrl || null))
-          .select()
-          .single();
-        if (createError) throw createError;
+        const newPerson = await createPerson(getPersonData(currentAvatarUrl || null));
         currentPersonId = newPerson.id;
       } else {
         // Update existing member info first
-        const { error: updateError } = await supabase
-          .from("persons")
-          .update(getPersonData(currentAvatarUrl || null))
-          .eq("id", currentPersonId);
-        if (updateError) throw updateError;
+        await updatePerson(currentPersonId, getPersonData(currentAvatarUrl || null));
       }
 
       // 2. Handle Avatar Upload if a new file is selected (now we have currentPersonId)
       if (avatarFile && currentPersonId) {
-        const fileExt = avatarFile.name.split(".").pop();
-        const slugName = slugify(fullName);
-        const fileName = `${currentPersonId}_${slugName}.${fileExt}`;
-        const filePath = `${fileName}`;
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", avatarFile);
+        const { url: publicUrl, error: uploadError } = await uploadAvatar(uploadFormData);
 
-        const { error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(filePath, avatarFile, { upsert: true });
-
-        if (uploadError) throw uploadError;
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("avatars").getPublicUrl(filePath);
+        if (uploadError || !publicUrl) throw new Error(uploadError ?? "Lỗi tải ảnh đại diện.");
 
         currentAvatarUrl = publicUrl;
 
         // Update the person with the final avatar URL
-        const { error: updateAvatarError } = await supabase
-          .from("persons")
-          .update({ avatar_url: currentAvatarUrl })
-          .eq("id", currentPersonId);
-        if (updateAvatarError) throw updateAvatarError;
+        await updatePersonAvatar(currentPersonId, currentAvatarUrl);
       }
 
-      // 3. Upsert private data (only if admin and currentPersonId exists)
-      if (isAdmin && currentPersonId) {
-        const normalizedData = {
-          person_id: currentPersonId,
-          phone_number: phoneNumber?.trim() || null,
-          occupation: occupation?.trim() || null,
-          current_residence: currentResidence?.trim() || null,
-        };
-
-        const hasData =
-          normalizedData.phone_number ||
-          normalizedData.occupation ||
-          normalizedData.current_residence;
-
-        if (hasData) {
-          const { error } = await supabase
-            .from("person_details_private")
-            .upsert(normalizedData);
-
-          if (error) throw error;
-        } else {
-          const { error } = await supabase
-            .from("person_details_private")
-            .delete()
-            .eq("person_id", currentPersonId);
-
-          if (error) throw error;
-        }
-      }
       // After save: use callback if provided, otherwise fall back to page navigation
       if (!currentPersonId)
         throw new Error("Không lấy được ID thành viên sau khi lưu.");
@@ -616,31 +554,16 @@ export default function MemberForm({
                     <button
                       type="button"
                       onClick={async () => {
-                        // If there is an existing URL from Supabase, try to extract the file path to delete it
+                        // If there is an existing uploaded URL, delete the blob too
                         if (
                           initialData?.avatar_url &&
                           avatarUrl === initialData.avatar_url
                         ) {
                           try {
-                            // Extract just the filename from the end of the URL
-                            const fileName = initialData.avatar_url
-                              .split("/")
-                              .pop();
-                            if (fileName) {
-                              const { error: removeError } =
-                                await supabase.storage
-                                  .from("avatars")
-                                  .remove([fileName]);
-                              if (removeError) {
-                                console.error(
-                                  "Error removing avatar from storage:",
-                                  removeError,
-                                );
-                              }
-                            }
+                            await deleteBlob(initialData.avatar_url);
                           } catch (err) {
                             console.error(
-                              "Failed to parse avatar URL for deletion",
+                              "Failed to delete avatar blob",
                               err,
                             );
                           }
@@ -865,27 +788,23 @@ export default function MemberForm({
         </div>
       </motion.div>
 
-      {/* Private Information Section (Admin Only) */}
-      {isAdmin && (
-        <motion.div
-          variants={formSectionVariants}
-          initial="hidden"
-          animate="show"
-          transition={{ delay: 0.1 }}
-          className="bg-linear-to-br from-amber-50/80 to-stone-50/80 p-5 sm:p-8 rounded-2xl border border-amber-200/50 shadow-sm relative overflow-hidden"
-        >
-          {/* Decorative Background Icon */}
-          <Lock className="absolute -right-6 -bottom-6 w-32 h-32 text-amber-500/5 rotate-12" />
+      {/* Private Information Section */}
+      <motion.div
+        variants={formSectionVariants}
+        initial="hidden"
+        animate="show"
+        transition={{ delay: 0.1 }}
+        className="bg-linear-to-br from-amber-50/80 to-stone-50/80 p-5 sm:p-8 rounded-2xl border border-amber-200/50 shadow-sm relative overflow-hidden"
+      >
+        {/* Decorative Background Icon */}
+        <Lock className="absolute -right-6 -bottom-6 w-32 h-32 text-amber-500/5 rotate-12" />
 
-          <h3 className="text-lg sm:text-xl font-serif font-bold text-amber-900 mb-6 border-b border-amber-200/50 pb-4 flex items-center gap-2 relative z-10">
-            <span className="p-1.5 bg-amber-100/80 text-amber-700 rounded-lg shadow-xs">
-              <Lock className="size-4" />
-            </span>
-            <span>Thông tin riêng tư</span>
-            <span className="text-[10px] ml-auto sm:ml-2 font-bold bg-amber-200/80 text-amber-800 uppercase tracking-wider px-2.5 py-1 rounded-md shadow-xs border border-amber-300/60">
-              Chỉ Admin
-            </span>
-          </h3>
+        <h3 className="text-lg sm:text-xl font-serif font-bold text-amber-900 mb-6 border-b border-amber-200/50 pb-4 flex items-center gap-2 relative z-10">
+          <span className="p-1.5 bg-amber-100/80 text-amber-700 rounded-lg shadow-xs">
+            <Lock className="size-4" />
+          </span>
+          <span>Thông tin riêng tư</span>
+        </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
             <div>
               <label className="flex items-center gap-1.5 text-sm font-semibold text-amber-900/80 mb-1.5">
@@ -934,7 +853,6 @@ export default function MemberForm({
             </div>
           </div>
         </motion.div>
-      )}
 
       <AnimatePresence>
         {error && (

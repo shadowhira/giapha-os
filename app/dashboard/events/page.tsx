@@ -1,28 +1,38 @@
 import { MemberListProvider } from "@/context/MemberListContext";
 import EventsList from "@/components/EventsList";
 import MemberDetailModal from "@/components/modal/MemberDetailModal";
-import { getSupabase } from "@/utils/supabase/queries";
+import { sql } from "@/utils/db/client";
+import { CustomEventRecord } from "@/utils/eventHelpers";
 
 export const metadata = {
   title: "Sự kiện gia phả",
 };
 
 export default async function EventsPage() {
-  const supabase = await getSupabase();
-
-  const [personsRes, customEventsRes] = await Promise.all([
-    supabase
-      .from("persons")
-      .select(
-        "id, full_name, birth_year, birth_month, birth_day, death_year, death_month, death_day, death_lunar_year, death_lunar_month, death_lunar_day, is_deceased, avatar_url",
-      ),
-    supabase
-      .from("custom_events")
-      .select("id, name, content, event_date, location, created_by"),
-  ]);
-
-  const persons = personsRes.data || [];
-  const customEvents = customEventsRes.data || [];
+  const [persons, customEvents] = (await Promise.all([
+    sql`
+      SELECT id, full_name, birth_year, birth_month, birth_day, death_year, death_month, death_day,
+        death_lunar_year, death_lunar_month, death_lunar_day, is_deceased, avatar_url
+      FROM persons
+    `,
+    sql`SELECT id, name, content, event_date, location, created_by FROM custom_events`,
+  ])) as [
+    {
+      id: string;
+      full_name: string;
+      birth_year: number | null;
+      birth_month: number | null;
+      birth_day: number | null;
+      death_year: number | null;
+      death_month: number | null;
+      death_day: number | null;
+      death_lunar_year: number | null;
+      death_lunar_month: number | null;
+      death_lunar_day: number | null;
+      is_deceased: boolean;
+    }[],
+    CustomEventRecord[],
+  ];
 
   return (
     <MemberListProvider>
@@ -35,10 +45,7 @@ export default async function EventsPage() {
         </div>
 
         <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1">
-          <EventsList
-            persons={persons ?? []}
-            customEvents={customEvents ?? []}
-          />
+          <EventsList persons={persons} customEvents={customEvents} />
         </main>
       </div>
 

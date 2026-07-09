@@ -1,9 +1,44 @@
-import { updateSession } from "@/utils/supabase/middleware";
-import { type NextRequest } from "next/server";
+import { auth } from "@/auth";
+import { NextResponse } from "next/server";
+import { getDbStatus } from "@/utils/db/status";
 
-export async function proxy(request: NextRequest) {
-  return await updateSession(request);
-}
+export const proxy = auth(async (request) => {
+  const { pathname } = request.nextUrl;
+  const isProtected = pathname.startsWith("/dashboard");
+  const isLoginPage = pathname.startsWith("/login");
+
+  if (pathname !== "/missing-db-config" && pathname !== "/setup") {
+    const status = await getDbStatus();
+
+    if (status === "missing-config") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/missing-db-config";
+      return NextResponse.redirect(url);
+    }
+
+    if (status === "missing-schema" && (isProtected || isLoginPage)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/setup";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  const isLoggedIn = !!request.auth?.user;
+
+  if (isProtected && !isLoggedIn) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (isLoginPage && isLoggedIn) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
+
+  return NextResponse.next();
+});
 
 export const config = {
   matcher: [

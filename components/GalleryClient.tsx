@@ -9,10 +9,8 @@ import { useRouter } from "next/navigation";
 
 export default function GalleryClient({
   initialItems,
-  isAdmin,
 }: {
   initialItems: GalleryItem[];
-  isAdmin: boolean;
 }) {
   const [items, setItems] = useState<GalleryItem[]>(initialItems);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -65,7 +63,6 @@ export default function GalleryClient({
 
       <GalleryGrid
         items={items}
-        isAdmin={isAdmin}
         onEdit={handleEdit}
         onDeleteSuccess={handleDeleteSuccess}
       />

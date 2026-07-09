@@ -1,4 +1,5 @@
-import { getSupabase, getIsAdmin } from "@/utils/supabase/queries";
+import { GalleryItem } from "@/types";
+import { sql } from "@/utils/db/client";
 import GalleryClient from "@/components/GalleryClient";
 
 export const metadata = {
@@ -7,17 +8,13 @@ export const metadata = {
 };
 
 export default async function GalleryPage() {
-  const supabase = await getSupabase();
-  const isAdmin = await getIsAdmin();
-
-  const { data: items } = await supabase
-    .from("gallery_items")
-    .select("*")
-    .order("event_date", { ascending: false, nullsFirst: false });
+  const items = (await sql`
+    SELECT * FROM gallery_items ORDER BY event_date DESC NULLS LAST
+  `) as unknown as GalleryItem[];
 
   return (
     <main className="flex-1 flex flex-col p-4 sm:p-8 max-w-7xl mx-auto w-full">
-      <GalleryClient initialItems={items || []} isAdmin={isAdmin} />
+      <GalleryClient initialItems={items} />
     </main>
   );
 }

@@ -1,50 +1,31 @@
 "use server";
 
-import { getProfile, getSupabase } from "@/utils/supabase/queries";
+import { auth } from "@/auth";
+import { sql } from "@/utils/db/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 export async function deleteMemberProfile(memberId: string) {
-  const profile = await getProfile();
-  const supabase = await getSupabase();
-
-  if (profile?.role !== "admin" && profile?.role !== "editor") {
-    return {
-      error: "Từ chối truy cập. Chỉ Admin hoặc Editor mới có quyền xoá hồ sơ.",
-    };
+  const session = await auth();
+  if (!session?.user) {
+    return { error: "Bạn cần đăng nhập để thực hiện thao tác này." };
   }
 
-  // 2. Check for existing relationships
-  const { data: relationships, error: relationshipError } = await supabase
-    .from("relationships")
-    .select("id")
-    .or(`person_a.eq.${memberId},person_b.eq.${memberId}`)
-    .limit(1);
+  const relationships = await sql`
+    SELECT id FROM relationships
+    WHERE person_a = ${memberId}::uuid OR person_b = ${memberId}::uuid
+    LIMIT 1
+  `;
 
-  if (relationshipError) {
-    console.error("Error checking relationships:", relationshipError);
-    return { error: "Lỗi kiểm tra mối quan hệ gia đình." };
-  }
-
-  if (relationships && relationships.length > 0) {
+  if (relationships.length > 0) {
     return {
       error:
         "Không thể xoá. Vui lòng xoá hết các mối quan hệ gia đình của người này trước.",
     };
   }
 
-  // 3. Delete the member
-  const { error: deleteError } = await supabase
-    .from("persons")
-    .delete()
-    .eq("id", memberId);
+  await sql`DELETE FROM persons WHERE id = ${memberId}::uuid`;
 
-  if (deleteError) {
-    console.error("Error deleting person:", deleteError);
-    return { error: "Đã xảy ra lỗi khi xoá hồ sơ." };
-  }
-
-  // 4. Revalidate and redirect
   revalidatePath("/dashboard/members");
   redirect("/dashboard/members");
 }

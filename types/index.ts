@@ -3,23 +3,6 @@ export type RelationshipType =
   | "marriage"
   | "biological_child"
   | "adopted_child";
-export type UserRole = "admin" | "editor" | "member";
-
-export interface Profile {
-  id: string;
-  role: UserRole;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface AdminUserData {
-  id: string;
-  email: string;
-  role: UserRole;
-  is_active: boolean;
-  created_at: string;
-}
 
 export interface Person {
   id: string;
@@ -36,10 +19,9 @@ export interface Person {
   created_at: string;
   updated_at: string;
 
-  // Private fields (optional, as they might not be returned for members)
-  phone_number?: string | null;
-  occupation?: string | null;
-  current_residence?: string | null;
+  phone_number: string | null;
+  occupation: string | null;
+  current_residence: string | null;
 
   // Lunar Date
   death_lunar_year: number | null;

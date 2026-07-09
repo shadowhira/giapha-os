@@ -1,6 +1,6 @@
 import { getTodayLunar } from "@/utils/dateHelpers";
 import { computeEvents } from "@/utils/eventHelpers";
-import { getIsAdmin, getSupabase } from "@/utils/supabase/queries";
+import { sql } from "@/utils/db/client";
 import {
   ArrowRight,
   BarChart2,
@@ -11,7 +11,6 @@ import {
   GitMerge,
   Network,
   Star,
-  Users,
   Image as ImageIcon,
   Info,
 } from "lucide-react";
@@ -40,21 +39,21 @@ const eventTypeConfig = {
 };
 
 export default async function DashboardLaunchpad() {
-  const isAdmin = await getIsAdmin();
-  const supabase = await getSupabase();
-
   /* ── Fetch events data ────────────────────────────────────────── */
-  const { data: persons } = await supabase
-    .from("persons")
-    .select(
-      "id, full_name, birth_year, birth_month, birth_day, death_year, death_month, death_day, death_lunar_year, death_lunar_month, death_lunar_day, is_deceased",
-    );
+  const persons = await sql`
+    SELECT id, full_name, birth_year, birth_month, birth_day, death_year, death_month, death_day,
+      death_lunar_year, death_lunar_month, death_lunar_day, is_deceased
+    FROM persons
+  `;
 
-  const { data: customEvents } = await supabase
-    .from("custom_events")
-    .select("id, name, content, event_date, location, created_by");
+  const customEvents = await sql`
+    SELECT id, name, content, event_date, location, created_by FROM custom_events
+  `;
 
-  const allEvents = computeEvents(persons ?? [], customEvents ?? []);
+  const allEvents = computeEvents(
+    persons as unknown as Parameters<typeof computeEvents>[0],
+    customEvents as unknown as Parameters<typeof computeEvents>[1],
+  );
   const upcomingEvents = allEvents.filter(
     (e) => e.daysUntil >= 0 && e.daysUntil <= 30,
   );
@@ -120,15 +119,6 @@ export default async function DashboardLaunchpad() {
   ];
 
   const adminFeatures = [
-    {
-      title: "Quản lý Người dùng",
-      description: "Phê duyệt tài khoản và phân quyền",
-      icon: <Users className="size-8 text-rose-600" />,
-      href: "/dashboard/users",
-      bgColor: "bg-rose-50",
-      borderColor: "border-rose-200/60",
-      hoverColor: "hover:border-rose-400 hover:shadow-rose-100",
-    },
     {
       title: "Thứ tự gia phả",
       description: "Sắp xếp và xem cấu trúc hệ thống",
@@ -286,35 +276,33 @@ export default async function DashboardLaunchpad() {
           </div>
         </section>
 
-        {isAdmin && (
-          <section>
-            <h3 className="text-xl font-serif font-bold text-rose-800 mb-6 flex items-center gap-2">
-              <span className="w-8 h-px bg-rose-200 rounded-full"></span>
-              Quản trị viên
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {adminFeatures.map((feat) => (
-                <Link
-                  key={feat.href}
-                  href={feat.href}
-                  className={`group flex flex-col p-6 rounded-2xl bg-white border ${feat.borderColor} ${feat.hoverColor} transition-all duration-300 hover:-translate-y-1 shadow-sm`}
+        <section>
+          <h3 className="text-xl font-serif font-bold text-rose-800 mb-6 flex items-center gap-2">
+            <span className="w-8 h-px bg-rose-200 rounded-full"></span>
+            Quản lý dữ liệu
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {adminFeatures.map((feat) => (
+              <Link
+                key={feat.href}
+                href={feat.href}
+                className={`group flex flex-col p-6 rounded-2xl bg-white border ${feat.borderColor} ${feat.hoverColor} transition-all duration-300 hover:-translate-y-1 shadow-sm`}
+              >
+                <div
+                  className={`size-14 rounded-xl flex items-center justify-center mb-5 ${feat.bgColor} transition-colors duration-300 group-hover:bg-white border border-transparent group-hover:${feat.borderColor}`}
                 >
-                  <div
-                    className={`size-14 rounded-xl flex items-center justify-center mb-5 ${feat.bgColor} transition-colors duration-300 group-hover:bg-white border border-transparent group-hover:${feat.borderColor}`}
-                  >
-                    {feat.icon}
-                  </div>
-                  <h4 className="text-lg font-bold text-stone-800 mb-2 group-hover:text-rose-700 transition-colors">
-                    {feat.title}
-                  </h4>
-                  <p className="text-sm text-stone-500 line-clamp-2">
-                    {feat.description}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+                  {feat.icon}
+                </div>
+                <h4 className="text-lg font-bold text-stone-800 mb-2 group-hover:text-rose-700 transition-colors">
+                  {feat.title}
+                </h4>
+                <p className="text-sm text-stone-500 line-clamp-2">
+                  {feat.description}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
       </div>
     </main>
   );

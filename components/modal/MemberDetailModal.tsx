@@ -1,5 +1,6 @@
 "use client";
 
+import { getPerson } from "@/app/actions/persons";
 import MemberDetailContent from "@/context/MemberDetailContent";
 import MemberForm from "@/components/MemberForm";
 import { Person } from "@/types";
@@ -9,7 +10,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useMemberListView } from "@/context/MemberListContext";
-import { useUser } from "@/components/UserProvider";
 
 export default function MemberDetailModal() {
   const {
@@ -18,7 +18,6 @@ export default function MemberDetailModal() {
     showCreateMember,
     setShowCreateMember,
   } = useMemberListView();
-  const { isAdmin, isEditor: canEdit, supabase } = useUser();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -27,10 +26,6 @@ export default function MemberDetailModal() {
   const [error, setError] = useState<string | null>(null);
 
   const [person, setPerson] = useState<Person | null>(null);
-  const [privateData, setPrivateData] = useState<Record<
-    string,
-    unknown
-  > | null>(null);
 
   const closeModal = () => {
     setMemberModalId(null);
@@ -38,44 +33,22 @@ export default function MemberDetailModal() {
     setIsEditing(false);
   };
 
-  const fetchData = useCallback(
-    async (id: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        // 1. Fetch Person Public Data
-        const { data: personData, error: personError } = await supabase
-          .from("persons")
-          .select("*")
-          .eq("id", id)
-          .single();
-
-        if (personError || !personData) {
-          throw new Error("Không thể tải thông tin thành viên.");
-        }
-        setPerson(personData);
-
-        // 2. Fetch Private Data if Admin
-        if (isAdmin) {
-          const { data: privData } = await supabase
-            .from("person_details_private")
-            .select("*")
-            .eq("person_id", id)
-            .single();
-          setPrivateData(privData || {});
-        } else {
-          setPrivateData(null);
-        }
-      } catch (err) {
-        console.error("Error fetching member details:", err);
-        // @ts-expect-error - err is caught as unknown, but we check for message
-        setError(err?.message || "Đã xảy ra lỗi hệ thống.");
-      } finally {
-        setLoading(false);
+  const fetchData = useCallback(async (id: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const personData = await getPerson(id);
+      if (!personData) {
+        throw new Error("Không thể tải thông tin thành viên.");
       }
-    },
-    [isAdmin, supabase],
-  );
+      setPerson(personData);
+    } catch (err) {
+      console.error("Error fetching member details:", err);
+      setError(err instanceof Error ? err.message : "Đã xảy ra lỗi hệ thống.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Sync state with URL parameter or create mode
   useEffect(() => {
@@ -89,13 +62,11 @@ export default function MemberDetailModal() {
       setIsOpen(true);
       setIsEditing(false);
       setPerson(null);
-      setPrivateData(null);
       setError(null);
     } else {
       setIsOpen(false);
       timeoutId = setTimeout(() => {
         setPerson(null);
-        setPrivateData(null);
         setError(null);
         setIsEditing(false);
       }, 300);
@@ -123,7 +94,6 @@ export default function MemberDetailModal() {
     // Clear stale data first so the loading state is shown while refetching
     setIsEditing(false);
     setPerson(null);
-    setPrivateData(null);
     fetchData(savedPersonId);
     // Revalidate Next.js server component cache so the dashboard list/members updates
     router.refresh();
@@ -140,11 +110,6 @@ export default function MemberDetailModal() {
       router.refresh();
     }, 100);
   };
-
-  // initialData for MemberForm — merge public + private
-  const formInitialData = person
-    ? { ...person, ...(privateData ?? {}) }
-    : undefined;
 
   return (
     <AnimatePresence>
@@ -188,7 +153,6 @@ export default function MemberDetailModal() {
                   <span className="hidden sm:inline">Quay lại</span>
                 </button>
               ) : (
-                canEdit &&
                 person && (
                   <>
                     <Link
@@ -250,7 +214,7 @@ export default function MemberDetailModal() {
                     Đóng
                   </button>
                 </motion.div>
-              ) : isEditing && formInitialData ? (
+              ) : isEditing && person ? (
                 /* ── EDIT MODE ── */
                 <motion.div
                   key="editing"
@@ -264,13 +228,8 @@ export default function MemberDetailModal() {
                     Chỉnh sửa thành viên
                   </h2>
                   <MemberForm
-                    initialData={
-                      formInitialData as Parameters<
-                        typeof MemberForm
-                      >[0]["initialData"]
-                    }
+                    initialData={person}
                     isEditing={true}
-                    isAdmin={isAdmin}
                     onSuccess={handleEditSuccess}
                     onCancel={() => setIsEditing(false)}
                   />
@@ -289,7 +248,6 @@ export default function MemberDetailModal() {
                     Thêm thành viên mới
                   </h2>
                   <MemberForm
-                    isAdmin={isAdmin}
                     onSuccess={handleCreateSuccess}
                     onCancel={closeModal}
                   />
@@ -304,12 +262,7 @@ export default function MemberDetailModal() {
                   transition={{ duration: 0.3 }}
                   className="flex-1 overflow-y-auto custom-scrollbar"
                 >
-                  <MemberDetailContent
-                    person={person}
-                    privateData={privateData}
-                    isAdmin={isAdmin}
-                    canEdit={canEdit}
-                  />
+                  <MemberDetailContent person={person} />
                 </motion.div>
               ) : null}
             </AnimatePresence>

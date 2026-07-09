@@ -1,6 +1,7 @@
 "use client";
 
 import { exportData, importData } from "@/app/actions/data";
+import { getAllPersons } from "@/app/actions/persons";
 import { Person } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, Download, Upload } from "lucide-react";
@@ -25,26 +26,8 @@ export default function DataImportExport() {
   useEffect(() => {
     async function fetchPersons() {
       try {
-        const { createClient } = await import("@/utils/supabase/client");
-        const supabase = createClient();
-        
-        let allFetched: Person[] = [];
-        let from = 0;
-        const step = 1000;
-        
-        while (true) {
-          const { data } = await supabase
-            .from("persons")
-            .select("id, full_name, birth_year, gender, avatar_url, generation")
-            .order("birth_year", { ascending: true, nullsFirst: false })
-            .range(from, from + step - 1);
-            
-          if (!data || data.length === 0) break;
-          allFetched = allFetched.concat(data as Person[]);
-          if (data.length < step) break;
-          from += step;
-        }
-        setPersons(allFetched);
+        const data = await getAllPersons();
+        setPersons(data);
       } catch (err) {
         console.error("Error fetching persons:", err);
       }
@@ -172,7 +155,6 @@ export default function DataImportExport() {
       const result = await importData({
         persons: payload.persons,
         relationships: payload.relationships,
-        person_details_private: payload.person_details_private,
         custom_events: payload.custom_events,
       });
 
@@ -191,11 +173,6 @@ export default function DataImportExport() {
         `${result.imported?.persons} thành viên`,
         `${result.imported?.relationships} quan hệ`,
       ];
-      if (result.imported?.person_details_private) {
-        parts.push(
-          `${result.imported.person_details_private} thông tin riêng tư`,
-        );
-      }
       if (result.imported?.custom_events) {
         parts.push(`${result.imported.custom_events} sự kiện`);
       }

@@ -1,7 +1,7 @@
 "use client";
 
-import { uploadGalleryImage } from "@/utils/supabase/storage";
-import { createClient } from "@/utils/supabase/client";
+import { createGalleryItem, updateGalleryItem } from "@/app/actions/gallery";
+import { uploadGalleryImage } from "@/app/actions/storage";
 import { X, UploadCloud, Loader2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -100,7 +100,9 @@ export default function UploadModal({
 
       // 1. Upload to storage (only if new file selected)
       if (file) {
-        const { url, error: uploadError } = await uploadGalleryImage(file);
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", file);
+        const { url, error: uploadError } = await uploadGalleryImage(uploadFormData);
         if (uploadError || !url) {
           throw new Error("Lỗi khi tải ảnh lên. Vui lòng thử lại.");
         }
@@ -108,9 +110,6 @@ export default function UploadModal({
       }
 
       // 2. Save to database
-      const supabase = createClient();
-      const { data: userData } = await supabase.auth.getUser();
-
       const itemData = {
         title,
         description: description || null,
@@ -119,21 +118,9 @@ export default function UploadModal({
       };
 
       if (initialData) {
-        // Update
-        const { error: dbError } = await supabase
-          .from("gallery_items")
-          .update(itemData)
-          .eq("id", initialData.id);
-        if (dbError) throw dbError;
+        await updateGalleryItem(initialData.id, itemData);
       } else {
-        // Insert
-        const { error: dbError } = await supabase.from("gallery_items").insert([
-          {
-            ...itemData,
-            created_by: userData?.user?.id || null,
-          },
-        ]);
-        if (dbError) throw dbError;
+        await createGalleryItem(itemData);
       }
 
       // Success

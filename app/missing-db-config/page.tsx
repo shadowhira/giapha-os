@@ -32,7 +32,7 @@ export default function MissingDBConfigPage() {
               </h2>
               <p className="text-stone-500 font-medium">
                 Ứng dụng hiện chưa được cấu hình biến môi trường kết nối đến
-                Supabase.
+                cơ sở dữ liệu (Neon Postgres).
               </p>
             </div>
           </div>
@@ -46,20 +46,19 @@ export default function MissingDBConfigPage() {
 
               <ol className="list-decimal list-inside space-y-4 text-stone-600">
                 <li className="leading-relaxed">
-                  Đăng nhập vào{" "}
+                  Tạo database miễn phí tại{" "}
                   <a
-                    href="https://supabase.com/dashboard/project/_/settings/api"
+                    href="https://neon.tech"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-amber-600 font-semibold hover:underline"
                   >
-                    Supabase Dashboard
-                  </a>
-                  .
+                    Neon
+                  </a>{" "}
+                  (hoặc qua Vercel Storage).
                 </li>
                 <li className="leading-relaxed">
-                  Lấy thông tin <b>Project URL</b> và{" "}
-                  <b>Project API Keys (anon public)</b>.
+                  Lấy <b>connection string</b> (bản pooled) của database.
                 </li>
                 <li className="leading-relaxed">
                   Tạo file <code>.env.local</code> ở thư mục gốc của dự án.
@@ -70,8 +69,7 @@ export default function MissingDBConfigPage() {
                     <Terminal className="size-5 text-stone-400 shrink-0 mt-0.5" />
                     <pre>
                       <code>
-                        {`NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your_supabase_anon_key`}
+                        {`DATABASE_URL=postgresql://user:pass@ep-xxx-pooler.neon.tech/neondb?sslmode=require`}
                       </code>
                     </pre>
                   </div>

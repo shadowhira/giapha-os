@@ -18,9 +18,7 @@ Phù hợp với người Việt Nam.
 - [Cài đặt và Chạy dự án](#cài-đặt-và-chạy-dự-án)
   - [Cách 1: Deploy nhanh lên Vercel](#cách-1-deploy-nhanh-lên-vercel)
   - [Cách 2: Chạy trên máy cá nhân](#cách-2-chạy-trên-máy-cá-nhân)
-- [Tài khoản đầu tiên](#tài-khoản-đầu-tiên)
-- [Xử lý lỗi khi đăng ký](#xử-lý-lỗi-khi-đăng-ký)
-- [Phân quyền người dùng (User Roles)](#phân-quyền-người-dùng-user-roles)
+- [Đăng nhập](#đăng-nhập)
 - [Đóng góp (Contributing)](#đóng-góp-contributing)
 - [Tuyên bố từ chối trách nhiệm & Quyền riêng tư](#tuyên-bố-từ-chối-trách-nhiệm--quyền-riêng-tư)
 - [Giấy phép (License)](#giấy-phép-license)
@@ -33,14 +31,13 @@ Phù hợp với người Việt Nam.
 - **Quản lý quan hệ**: Quản lý các mối quan hệ trong gia phả (hỗ trợ các trường hợp đặc biệt như đa thê, đa phu,...).
 - **Thống kê & Sự kiện**: Theo dõi ngày giỗ và các chỉ số nhân khẩu học của dòng họ.
 - **Sao lưu dữ liệu**: Xuất/nhập file JSON, CSV, GEDCOM để lưu trữ hoặc di chuyển dễ dàng.
-- **Bảo mật**: Phân quyền (Admin, Editor, Member) và bảo vệ dữ liệu bằng Supabase.
+- **Đăng nhập Google**: Đăng nhập nhanh, không cần quản lý mật khẩu; ai đăng nhập cũng có quyền cập nhật gia phả như nhau.
 - **Đa thiết bị**: Giao diện hiện đại, tối ưu cho cả máy tính và điện thoại.
 
 ## Demo
 
 - Demo: [giapha-os.homielab.com](https://giapha-os.homielab.com)
-- Tài khoản: `giaphaos@homielab.com`
-- Mật khẩu: `giaphaos`
+- Đăng nhập bằng tài khoản Google bất kỳ.
 
 ## Hình ảnh Giao diện
 
@@ -66,29 +63,34 @@ Chỉ cần khoảng 10 -> 15 phút là bạn có thể tự dựng hệ thống
 
 ---
 
-## 1. Tạo Database (Miễn phí với Supabase)
+## 1. Tạo Database (Miễn phí với Neon)
 
 1. Tạo tài khoản miễn phí tại https://github.com nếu chưa có.
-2. Tạo tài khoản miễn phí tại https://supabase.com nếu chưa có (khuyên dùng đăng ký bằng tài khoản GitHub cho nhanh).
-3. Tạo **New Project**. Đợi khoảng 1 -> 2 phút để hệ thống khởi tạo xong.
-4. Vào **Project Settings → API**, giữ lại 2 giá trị này để dùng ở bước tiếp theo:
-   - `Project URL`
-   - `Project API Keys`
+2. Vào [Vercel Dashboard](https://vercel.com) → **Storage → Create Database → Neon** (hoặc tạo trực tiếp tại https://neon.tech).
+3. Lấy **connection string** (bản pooled) — đây là giá trị `DATABASE_URL` dùng ở bước sau.
+
+## 2. Tạo Google OAuth (đăng nhập)
+
+1. Vào [Google Cloud Console](https://console.cloud.google.com) → tạo project mới.
+2. **OAuth consent screen**: chọn *External*, điền thông tin cơ bản rồi **Publish**.
+3. **Credentials → Create OAuth Client ID → Web application**. Thêm **Authorized redirect URIs**:
+   - `https://your-domain.vercel.app/api/auth/callback/google`
+   - `http://localhost:3000/api/auth/callback/google` (nếu chạy local)
+4. Lưu lại **Client ID** và **Client Secret**.
 
 ---
 
 ## Cách 1: Deploy nhanh lên Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhomielab%2Fgiapha-os&env=SITE_NAME,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhomielab%2Fgiapha-os&env=SITE_NAME,DATABASE_URL,AUTH_SECRET,AUTH_GOOGLE_ID,AUTH_GOOGLE_SECRET)
 
 1. Tạo tài khoản miễn phí tại https://vercel.com nếu chưa có (khuyên dùng đăng ký bằng tài khoản GitHub cho nhanh).
 2. Nhấn nút Deploy bên trên.
-3. Điền các biến môi trường đã lưu ở **bước 1**:
-   - `NEXT_PUBLIC_SUPABASE_URL` = `Project URL`
-   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` = `Project API Keys`
-4. Nhấn **Deploy** và chờ 2 -> 3 phút.
+3. Điền các biến môi trường đã lưu ở **bước 1, 2**, cộng thêm `AUTH_SECRET` (sinh bằng `openssl rand -base64 32`).
+4. Vào **Storage → Create → Blob** để tạo Vercel Blob (dùng lưu ảnh), liên kết vào project — token `BLOB_READ_WRITE_TOKEN` sẽ tự thêm vào env.
+5. Nhấn **Deploy** và chờ 2 -> 3 phút.
 
-Bạn sẽ có một đường link website để sử dụng ngay.
+Bạn sẽ có một đường link website để sử dụng ngay. Mở trang `/setup` để lấy SQL khởi tạo cấu trúc bảng và chạy trong **Neon SQL Editor**.
 
 ---
 
@@ -98,11 +100,14 @@ Yêu cầu: máy đã cài [Node.js](https://nodejs.org/en) và [Bun](https://bu
 
 1. Clone hoặc tải project về máy.
 2. Đổi tên file `.env.example` thành `.env.local`.
-3. Mở file `.env.local` và điền các giá trị đã lưu ở **bước 1**.
+3. Mở file `.env.local` và điền các giá trị đã lưu ở **bước 1, 2**.
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY="your-anon-key"
+DATABASE_URL="postgresql://user:pass@ep-xxx-pooler.neon.tech/neondb?sslmode=require"
+AUTH_SECRET="your-random-secret"
+AUTH_GOOGLE_ID="your-google-client-id"
+AUTH_GOOGLE_SECRET="your-google-client-secret"
+BLOB_READ_WRITE_TOKEN="your-blob-token"
 ```
 
 4. Cài thư viện
@@ -121,41 +126,12 @@ Mở trình duyệt và truy cập: `http://localhost:3000`
 
 ---
 
-## Tài khoản đầu tiên
+## Đăng nhập
 
-- Đăng ký tài khoản mới khi vào web lần đầu.
-- Người đăng ký đầu tiên sẽ tự động có quyền **admin**.
-- Các tài khoản đăng ký sau sẽ mặc định là **member**.
+- Đăng nhập bằng tài khoản Google — không cần đăng ký, không cần quản lý mật khẩu.
+- Bất kỳ ai đăng nhập cũng có quyền xem và cập nhật gia phả như nhau (không phân quyền).
 
-## Xử lý lỗi khi đăng ký
-
-Sau khi cài đặt xong, nếu bạn gặp lỗi `Failed to fetch` khi đăng ký:
-
-**Nguyên nhân:** Supabase chặn các request từ domain chưa được thêm vào danh sách cho phép.
-
-**Cách khắc phục:**
-
-1. Vào [Supabase Dashboard](https://supabase.com/dashboard) → chọn Project của bạn.
-2. Vào **Authentication → URL Configuration**.
-3. Ở mục **Site URL**, điền URL chính của ứng dụng, ví dụ:
-   - Vercel: `https://giapha-os.vercel.app`
-   - Máy cá nhân: `http://localhost:3000`
-4. Ở mục **Redirect URLs**, nhấn **Add URL** và thêm:
-   - `https://giapha-os.vercel.app/**`
-   - `http://localhost:3000/**` (nếu chạy local)
-5. Nhấn **Save** và thử lại.
-
-> **Lưu ý:** Thay `giapha-os.vercel.app` bằng domain thực tế của bạn. Nếu dùng domain tùy chỉnh, hãy thêm cả domain đó vào danh sách.
-
----
-
-## Phân quyền người dùng (User Roles)
-
-Hệ thống có 3 cấp độ phân quyền để dễ dàng quản lý ai được phép cập nhật gia phả:
-
-1. **Admin (Quản trị viên):** Có toàn quyền đối với hệ thống.
-2. **Editor (Biên soạn):** Cho phép thêm, sửa, xóa thông tin hồ sơ và các mối quan hệ.
-3. **Member (Thành viên):** Chỉ có thể xem sơ đồ gia phả và các thống kê trực quan.
+Nếu gặp lỗi khi đăng nhập, kiểm tra lại **Authorized redirect URIs** trong Google Cloud Console đã khớp đúng domain thực tế của bạn (xem [bước 2](#2-tạo-google-oauth-đăng-nhập)) chưa.
 
 ## Đóng góp (Contributing)
 
@@ -165,11 +141,11 @@ Dự án này là mã nguồn mở, hoan nghênh mọi đóng góp, báo cáo l�
 
 > **Dự án này chỉ cung cấp mã nguồn (source code). Không có bất kỳ dữ liệu cá nhân nào được thu thập hay lưu trữ bởi tác giả.**
 
-- **Tự lưu trữ hoàn toàn (Self-hosted):** Khi bạn triển khai ứng dụng, toàn bộ dữ liệu gia phả (tên, ngày sinh, quan hệ, thông tin liên hệ...) được lưu trữ **trong tài khoản Supabase của chính bạn**. Tác giả dự án không có quyền truy cập vào database đó.
+- **Tự lưu trữ hoàn toàn (Self-hosted):** Khi bạn triển khai ứng dụng, toàn bộ dữ liệu gia phả (tên, ngày sinh, quan hệ, thông tin liên hệ...) được lưu trữ **trong cơ sở dữ liệu Neon của chính bạn**. Tác giả dự án không có quyền truy cập vào database đó.
 
 - **Không thu thập dữ liệu:** Không có analytics, không có tracking, không có telemetry, không có bất kỳ hình thức thu thập thông tin người dùng nào được tích hợp trong mã nguồn.
 
-- **Bạn kiểm soát dữ liệu của bạn:** Mọi dữ liệu gia đình, thông tin thành viên đều nằm hoàn toàn trong cơ sở dữ liệu Supabase mà bạn tạo và quản lý. Bạn có thể xóa, xuất hoặc di chuyển dữ liệu bất cứ lúc nào.
+- **Bạn kiểm soát dữ liệu của bạn:** Mọi dữ liệu gia đình, thông tin thành viên đều nằm hoàn toàn trong cơ sở dữ liệu Neon mà bạn tạo và quản lý. Bạn có thể xóa, xuất hoặc di chuyển dữ liệu bất cứ lúc nào.
 
 - **Demo công khai:** Trang demo tại `giapha-os.homielab.com` sử dụng dữ liệu mẫu hư cấu, không chứa thông tin của người thật. Không nên nhập thông tin cá nhân thật vào trang demo.
 

@@ -2,7 +2,8 @@ import { MemberListProvider } from "@/context/MemberListContext";
 import MembersViews from "@/components/MembersViews";
 import MemberDetailModal from "@/components/modal/MemberDetailModal";
 import ViewToggle from "@/components/ViewToggle";
-import { getProfile, getSupabase } from "@/utils/supabase/queries";
+import { Person, Relationship } from "@/types";
+import { sql } from "@/utils/db/client";
 
 import { ViewMode } from "@/components/ViewToggle";
 
@@ -14,25 +15,10 @@ export default async function FamilyTreePage({ searchParams }: PageProps) {
   const initialView = view as ViewMode | undefined;
   const initialShowAvatar = avatar !== "hide";
 
-  const profile = await getProfile();
-  const canEdit = profile?.role === "admin" || profile?.role === "editor";
-
-  // If view is list, we only need persons, not relationships.
-  // We fetch persons for all views to pass down as a prop if we want, or let components fetch.
-  // Actually, to make transitions fast and avoid duplicate fetching across components,
-  // we will fetch data here and pass it down as props.
-  const supabase = await getSupabase();
-
-  const [personsRes, relsRes] = await Promise.all([
-    supabase
-      .from("persons")
-      .select("*")
-      .order("birth_year", { ascending: true, nullsFirst: false }),
-    supabase.from("relationships").select("*"),
-  ]);
-
-  const persons = personsRes.data || [];
-  const relationships = relsRes.data || [];
+  const [persons, relationships] = (await Promise.all([
+    sql`SELECT * FROM persons ORDER BY birth_year ASC NULLS LAST`,
+    sql`SELECT * FROM relationships`,
+  ])) as unknown as [Person[], Relationship[]];
 
   // Prepare map and roots for tree views
   const personsMap = new Map();
@@ -65,11 +51,7 @@ export default async function FamilyTreePage({ searchParams }: PageProps) {
       initialShowAvatar={initialShowAvatar}
     >
       <ViewToggle />
-      <MembersViews
-        persons={persons}
-        relationships={relationships}
-        canEdit={canEdit}
-      />
+      <MembersViews persons={persons} relationships={relationships} canEdit={true} />
 
       <MemberDetailModal />
     </MemberListProvider>

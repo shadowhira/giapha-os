@@ -1,7 +1,7 @@
 "use client";
 
+import { applyLineageUpdates } from "@/app/actions/persons";
 import { Person, Relationship } from "@/types";
-import { createClient } from "@/utils/supabase/client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
@@ -269,8 +269,6 @@ export default function LineageManager({
   persons,
   relationships,
 }: LineageManagerProps) {
-  const supabase = createClient();
-
   const [updates, setUpdates] = useState<ComputedUpdate[] | null>(null);
   const [computing, setComputing] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -336,24 +334,14 @@ export default function LineageManager({
 
     try {
       const changedOnly = updates.filter((u) => u.changed);
-      // Batch update in chunks of 20
-      const CHUNK = 20;
-      for (let i = 0; i < changedOnly.length; i += CHUNK) {
-        const chunk = changedOnly.slice(i, i + CHUNK);
-        // Update each person individually (Supabase doesn't support bulk upsert with different values easily)
-        await Promise.all(
-          chunk.map((u) =>
-            supabase
-              .from("persons")
-              .update({
-                generation: u.new_generation,
-                birth_order: u.new_birth_order,
-                is_in_law: u.new_is_in_law,
-              })
-              .eq("id", u.id),
-          ),
-        );
-      }
+      await applyLineageUpdates(
+        changedOnly.map((u) => ({
+          id: u.id,
+          generation: u.new_generation,
+          birth_order: u.new_birth_order,
+          is_in_law: u.new_is_in_law,
+        })),
+      );
       setApplied(true);
     } catch (err) {
       setError((err as Error).message || "Lỗi khi cập nhật dữ liệu.");

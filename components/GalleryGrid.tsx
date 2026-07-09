@@ -1,22 +1,19 @@
 "use client";
 
+import { deleteGalleryItem } from "@/app/actions/gallery";
 import { GalleryItem } from "@/types";
 import { useState } from "react";
 import { X, CalendarDays, Maximize2 } from "lucide-react";
 import dayjs from "dayjs";
 
-import { createClient } from "@/utils/supabase/client";
-
 interface GalleryGridProps {
   items: GalleryItem[];
-  isAdmin?: boolean;
   onEdit?: (item: GalleryItem) => void;
   onDeleteSuccess?: (id: string) => void;
 }
 
 export default function GalleryGrid({
   items,
-  isAdmin,
   onEdit,
   onDeleteSuccess,
 }: GalleryGridProps) {
@@ -27,21 +24,7 @@ export default function GalleryGrid({
     if (!confirm("Bạn có chắc chắn muốn xóa hình ảnh này?")) return;
     setIsDeleting(true);
     try {
-      const supabase = createClient();
-
-      // Delete from storage if possible
-      const fileName = item.image_url.split("/").pop();
-      if (fileName) {
-        await supabase.storage.from("gallery").remove([fileName]);
-      }
-
-      // Delete from db
-      const { error } = await supabase
-        .from("gallery_items")
-        .delete()
-        .eq("id", item.id);
-      if (error) throw error;
-
+      await deleteGalleryItem(item);
       setSelectedItem(null);
       if (onDeleteSuccess) onDeleteSuccess(item.id);
     } catch (err) {
@@ -166,26 +149,24 @@ export default function GalleryGrid({
                   {dayjs(selectedItem.created_at).format("DD/MM/YYYY")}
                 </span>
 
-                {isAdmin && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setSelectedItem(null);
-                        if (onEdit) onEdit(selectedItem);
-                      }}
-                      className="px-4 py-2 bg-stone-100/80 text-stone-700 rounded-lg hover:bg-stone-200 hover:text-stone-900 font-medium text-sm transition-all shadow-sm"
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      onClick={() => handleDelete(selectedItem)}
-                      disabled={isDeleting}
-                      className="px-4 py-2 bg-red-100 text-red-800 rounded-md hover:bg-red-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {isDeleting ? "Đang xóa..." : "Xóa"}
-                    </button>
-                  </div>
-                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedItem(null);
+                      if (onEdit) onEdit(selectedItem);
+                    }}
+                    className="px-4 py-2 bg-stone-100/80 text-stone-700 rounded-lg hover:bg-stone-200 hover:text-stone-900 font-medium text-sm transition-all shadow-sm"
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    onClick={() => handleDelete(selectedItem)}
+                    disabled={isDeleting}
+                    className="px-4 py-2 bg-red-100 text-red-800 rounded-md hover:bg-red-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isDeleting ? "Đang xóa..." : "Xóa"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

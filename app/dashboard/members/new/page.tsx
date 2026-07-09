@@ -1,30 +1,8 @@
 import MemberForm from "@/components/MemberForm";
-import { getProfile } from "@/utils/supabase/queries";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-export default async function NewMemberPage() {
-  const profile = await getProfile();
-
-  const isAdmin = profile?.role === "admin";
-  const canEdit = profile?.role === "admin" || profile?.role === "editor";
-
-  // If user cannot edit, reject access
-  if (!canEdit) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-50">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-stone-800">
-            Truy cập bị từ chối
-          </h1>
-          <p className="text-stone-600 mt-2">
-            Bạn không có quyền thêm thành viên.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+export default function NewMemberPage() {
   return (
     <div className="flex-1 w-full relative flex flex-col pb-8">
       {/* Decorative background blurs */}
@@ -51,7 +29,7 @@ export default async function NewMemberPage() {
       </div>
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10 w-full flex-1">
-        <MemberForm isAdmin={isAdmin} />
+        <MemberForm />
       </main>
     </div>
   );

@@ -58,22 +58,22 @@ export default async function SetupPage() {
                   <li className="leading-relaxed">
                     Mở{" "}
                     <a
-                      href="https://supabase.com/dashboard/project/_/sql/new"
+                      href="https://neon.tech"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-amber-600 font-semibold hover:underline"
                     >
-                      Supabase SQL Editor
+                      Neon SQL Editor
                     </a>{" "}
                     trong dự án của bạn.
                   </li>
                   <li className="leading-relaxed">
                     <strong>Dán (Paste)</strong> mã vừa copy vào khung soạn thảo
-                    của Supabase.
+                    của Neon.
                   </li>
                   <li className="leading-relaxed">
-                    Bấm nút <strong>RUN</strong> (Chạy) ở góc phải dưới cùng màn
-                    hình Supabase.
+                    Bấm nút <strong>Run</strong> (Chạy) để khởi tạo cấu trúc
+                    bảng.
                   </li>
                   <li className="leading-relaxed">
                     Quay lại đây và <strong>Tải lại trang</strong> (hoặc bấm
